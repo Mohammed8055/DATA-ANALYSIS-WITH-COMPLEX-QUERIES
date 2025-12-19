@@ -26,6 +26,8 @@ The resulting output is a multi-dimensional Trend Report that showcases key metr
 
 #OUTPUT OF THIS TASK 
 
+TASK 1 SQL
 ![Image](https://github.com/user-attachments/assets/0eae462e-41ac-491e-994c-d3a8197651af)
 
+TASK 2 SQL
 ![Image](https://github.com/user-attachments/assets/12941f57-fbf3-4205-b4d8-ffe59d41b418)
