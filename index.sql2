@@ -1,0 +1,27 @@
+-- CTE: Pre-calculating Monthly Totals
+WITH MonthlyPerformance AS (
+    SELECT 
+        Region,
+        EXTRACT(MONTH FROM Sales_Date) AS SaleMonth,
+        EXTRACT(YEAR FROM Sales_Date) AS SaleYear,
+        SUM(Revenue) AS Monthly_Revenue
+    FROM Retail_Sales
+    GROUP BY Region, EXTRACT(MONTH FROM Sales_Date), EXTRACT(YEAR FROM Sales_Date)
+)
+-- Main Query: Generating the Trend Report
+SELECT 
+    Region,
+    SaleMonth || '-' || SaleYear AS Period,
+    Monthly_Revenue,
+    -- WINDOW FUNCTION 1: Comparing current month to previous month (Trend Analysis)
+    LAG(Monthly_Revenue) OVER (PARTITION BY Region ORDER BY SaleMonth) AS Prev_Month_Rev,
+    -- WINDOW FUNCTION 2: Running Total for the year
+    SUM(Monthly_Revenue) OVER (PARTITION BY Region ORDER BY SaleMonth) AS YTD_Total,
+    -- SUBQUERY: Flagging if region beat the company global average for that month
+    CASE 
+        WHEN Monthly_Revenue > (SELECT AVG(Monthly_Revenue) FROM MonthlyPerformance) 
+        THEN 'Above Average' 
+        ELSE 'Below Average' 
+    END AS Performance_Status
+FROM MonthlyPerformance
+ORDER BY Region, SaleMonth;
