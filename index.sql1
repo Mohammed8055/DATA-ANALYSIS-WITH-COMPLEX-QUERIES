@@ -1,0 +1,43 @@
+-- CTE 1: Aggregating data by Month and Salesperson
+WITH MonthlyAggregation AS (
+    SELECT 
+        Salesperson,
+        Region,
+        DATE_TRUNC('month', Sale_Date) AS Sale_Month,
+        SUM(Revenue) AS Monthly_Rev
+    FROM Quarterly_Sales
+    GROUP BY Salesperson, Region, DATE_TRUNC('month', Sale_Date)
+),
+
+-- CTE 2: Adding Window Functions for comparisons
+PerformanceMetrics AS (
+    SELECT 
+        Salesperson,
+        Region,
+        Sale_Month,
+        Monthly_Rev,
+        -- Window Function 1: Get the previous month's revenue for growth calculation
+        LAG(Monthly_Rev) OVER(PARTITION BY Salesperson ORDER BY Sale_Month) AS Prev_Month_Rev,
+        -- Window Function 2: Calculate average revenue of the Region for that month
+        AVG(Monthly_Rev) OVER(PARTITION BY Region, Sale_Month) AS Regional_Avg_Monthly
+    FROM MonthlyAggregation
+)
+
+-- Final Report Selection
+SELECT 
+    Salesperson,
+    Region,
+    TO_CHAR(Sale_Month, 'Mon-YYYY') AS Report_Period,
+    Monthly_Rev,
+    -- Calculation: Growth vs Previous Month
+    ROUND(((Monthly_Rev - Prev_Month_Rev) / NULLIF(Prev_Month_Rev, 0)) * 100, 2) AS Growth_Pct,
+    -- Window Function 3: Ranking within the Region
+    RANK() OVER(PARTITION BY Region, Sale_Month ORDER BY Monthly_Rev DESC) AS Rank_In_Region,
+    -- Subquery: Flagging if user is in the top 10% of global total sales
+    CASE 
+        WHEN Monthly_Rev > (SELECT AVG(Monthly_Rev) * 1.5 FROM MonthlyAggregation) 
+        THEN 'High Flyer' 
+        ELSE 'On Track' 
+    END AS Performance_Tier
+FROM PerformanceMetrics
+ORDER BY Sale_Month DESC, Monthly_Rev DESC;
